@@ -52,9 +52,9 @@
             stream_filter_prepend($f, 'convert.iconv.utf-8/cp932');
             fputcsv($f, $header, ",", '"');
 
-            $row = [];
             foreach($records as $r) {
                 $this->log_r($r);
+                $row = [];
 {% for field in fields %}
                 $row []= $r['{{ field }}'];
 {% endfor %}
