@@ -22,6 +22,8 @@
     classImports: (plugin or prefix) ? ["#{baseNamespace}\\Controller\\AppController"] : [],
 }) }}
 
+use Cake\Http\CallbackStream; // for csv output streaming
+
 /**
  * {{ name }} Controller
  *

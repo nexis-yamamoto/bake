@@ -1,0 +1,77 @@
+{#
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+#}
+{% set belongsTo = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
+{% set compact = ["'#{singularName}'"] %}
+{% set associations = {'BelongsTo': [], 'HasOne': [], 'HasMany': [], 'BelongsToMany': []}|merge(associations) %}
+{% set relations = associations.BelongsTo %}
+
+    /**
+     * Csv method
+     *
+     * @return \Cake\Http\Response|null|void Redirects on successful add, renders view otherwise.
+     */
+    public function csv()
+    {
+        $this->autoRender = false;
+
+        $header = array();
+{% for field in fields %}
+        $header[] = "{{ field }}";
+{% endfor %}
+
+{% for alias, details in relations %}
+{% set otherSingularVar = alias|variable %}
+        # {{ otherSingularVar }}
+{% for field in details.fields %}
+        $header[] = "{{ otherSingularVar }}.{{ field | humanize }}";
+{% endfor %}
+{% endfor %}
+
+        #$this->{{ currentModelName }}->recursive = 0;
+        $records = $this->{{ currentModelName }}->Find('all', array(
+            'order' => '{{ currentModelName }}.id',
+            'conditions' => array('{{ currentModelName }}.deleted is null'),
+            'contain' => {{ Bake.exportArray(belongsTo)|raw }},
+        ));
+
+        $stream = new CallbackStream(function () use ($records, $header) {
+            $f = fopen('php://output', 'w');
+            stream_filter_prepend($f, 'convert.iconv.utf-8/cp932');
+            fputcsv($f, $header, ",", '"');
+
+            $row = [];
+            foreach($records as $r) {
+                $this->log_r($r);
+{% for field in fields %}
+                $row []= $r['{{ field }}'];
+{% endfor %}
+
+{% for alias, details in relations %}
+{% set singularAlias = alias|variable|singularize %}
+{% set otherPluralHumanName = details.controller|underscore|humanize %}
+                # {{ otherPluralHumanName }}
+{% for field in details.fields %}
+                $row []= $r['{{ singularAlias }}']['{{ field }}'];
+{% endfor %}
+{% endfor %}
+                fputcsv($f, $row, ",", '"');
+            }
+        });
+        return $this->response
+            ->withType('csv')
+            ->withDownload('{{ currentModelName }}.csv')
+            ->withBody($stream);
+    }

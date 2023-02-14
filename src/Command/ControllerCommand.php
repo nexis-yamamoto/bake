@@ -16,12 +16,15 @@ declare(strict_types=1);
  */
 namespace Bake\Command;
 
+use Bake\Utility\Model\AssociationFilter;
 use Bake\Utility\TableScanner;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\EntityInterface;
+use Cake\ORM\Table;
 
 /**
  * Task class for creating and updating controller files.
@@ -80,7 +83,7 @@ class ControllerCommand extends BakeCommand
 
         $actions = [];
         if (!$args->getOption('no-actions') && !$args->getOption('actions')) {
-            $actions = ['index', 'view', 'add', 'edit', 'delete'];
+            $actions = ['index', 'view', 'add', 'edit', 'delete', 'csv'];
         }
         if ($args->getOption('actions')) {
             $actions = array_map('trim', explode(',', $args->getOption('actions')));
@@ -119,6 +122,8 @@ class ControllerCommand extends BakeCommand
                 'connectionName' => $this->connection,
             ]);
         }
+        $schema = $modelObj->getSchema();
+        $fields = $schema->columns();
 
         $pluralName = $this->_variableName($currentModelName);
         $singularName = $this->_singularName($currentModelName);
@@ -131,6 +136,8 @@ class ControllerCommand extends BakeCommand
         }
         $entityClassName = $this->_entityName($modelObj->getAlias());
 
+        $associations = $this->_filteredAssociations($modelObj);
+        print_r($associations);
         $data = compact(
             'actions',
             'components',
@@ -146,7 +153,10 @@ class ControllerCommand extends BakeCommand
             'pluralName',
             'prefix',
             'singularHumanName',
-            'singularName'
+            'singularName',
+
+            'fields', // added by me
+            'associations' // added by me
         );
         $data['name'] = $controllerName;
 
@@ -273,5 +283,28 @@ class ControllerCommand extends BakeCommand
         ]);
 
         return $parser;
+    }
+
+    /**
+     * AssociationFilter utility
+     *
+     * @var \Bake\Utility\Model\AssociationFilter|null
+     */
+    protected $_associationFilter;
+
+    /**
+     * Get filtered associations
+     * To be mocked...
+     *
+     * @param \Cake\ORM\Table $model Table
+     * @return array associations
+     */
+    protected function _filteredAssociations(Table $model): array
+    {
+        if ($this->_associationFilter === null) {
+            $this->_associationFilter = new AssociationFilter();
+        }
+
+        return $this->_associationFilter->filterAssociations($model);
     }
 }
