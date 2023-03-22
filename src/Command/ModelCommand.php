@@ -1059,6 +1059,11 @@ class ModelCommand extends BakeCommand
             $behaviors['CounterCache'] = $counterCache;
         }
 
+        if (in_array('usn', $fields, true)) {
+            $behaviors['SyncSave'] = [];
+        }
+
+
         return $behaviors;
     }
 
