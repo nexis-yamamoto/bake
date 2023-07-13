@@ -40,7 +40,6 @@
 {% endfor %}
 {% endfor %}
 
-        #$this->{{ currentModelName }}->recursive = 0;
         $records = $this->{{ currentModelName }}->Find('all', array(
             'order' => '{{ currentModelName }}.id',
             'conditions' => array('{{ currentModelName }}.deleted is null'),
